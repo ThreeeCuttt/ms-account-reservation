@@ -3,9 +3,15 @@
         xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
-        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.31.xsd">
 
     <changeSet id="001-create-account-status" author="kolya">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="account_status"/>
+            </not>
+        </preConditions>
+
         <createTable tableName="account_status">
             <column name="id" type="INT" autoIncrement="true">
                 <constraints primaryKey="true" nullable="false"

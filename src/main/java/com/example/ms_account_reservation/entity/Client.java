@@ -5,12 +5,23 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UuidGenerator;
+import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
 @Table(name = "client")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class Client {
 
     @Id
@@ -40,32 +51,11 @@ public class Client {
     @Column(name = "mdm_code")
     private Long mdmCode;
 
-    public Client() {
-    }
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private OffsetDateTime createdAt;
 
-    // пост гет и сет
-
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
-
-    public String getFullName() { return fullName; }
-    public void setFullName(String fullName) { this.fullName = fullName; }
-
-    public String getCitizenship() { return citizenship; }
-    public void setCitizenship(String citizenship) { this.citizenship = citizenship; }
-
-    public String getClientType() { return clientType; }
-    public void setClientType(String clientType) { this.clientType = clientType; }
-
-    public String getDocumentNumber() { return documentNumber; }
-    public void setDocumentNumber(String documentNumber) { this.documentNumber = documentNumber; }
-
-    public String getDocumentSeries() { return documentSeries; }
-    public void setDocumentSeries(String documentSeries) { this.documentSeries = documentSeries; }
-
-    public String getDocumentType() { return documentType; }
-    public void setDocumentType(String documentType) { this.documentType = documentType; }
-
-    public Long getMdmCode() { return mdmCode; }
-    public void setMdmCode(Long mdmCode) { this.mdmCode = mdmCode; }
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private OffsetDateTime updatedAt;
 }
