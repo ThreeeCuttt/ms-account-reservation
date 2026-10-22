@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.16</version>
+		<version>3.3.4</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 
@@ -14,13 +14,6 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<name>ms-account-reservation</name>
 	<description>Demo project for Spring Boot</description>
-	<url/>
-	<licenses>
-		<license/>
-	</licenses>
-	<developers>
-		<developer/>
-	</developers>
 	<scm>
 		<connection/>
 		<developerConnection/>
@@ -40,6 +33,12 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+
+		<!-- ДОБАВЛЕНА ЗАВИСИМОСТЬ ДЛЯ ACTUATOR -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
 
 		<dependency>
