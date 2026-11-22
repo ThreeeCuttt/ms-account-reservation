@@ -1,0 +1,342 @@
+openapi: 3.0.3
+info:
+  title: MS Upgrade API — Clients
+  description: REST API для управления клиентами (UPG-4)
+  version: 1.0.0
+servers:
+  - url: /api/v1
+    description: Базовый префикс API
+tags:
+  - name: Clients
+    description: Операции с клиентами
+
+paths:
+  /clients:
+    post:
+      tags:
+        - Clients
+      summary: Создание нового клиента
+      operationId: createClient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateClientRequest'
+      responses:
+        '201':
+          description: Клиент создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+    get:
+      tags:
+        - Clients
+      summary: Поиск клиентов с пагинацией
+      operationId: searchClients
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: lastName
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: mdmId
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Успешный поиск
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientPageResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /clients/{clientId}:
+    get:
+      tags:
+        - Clients
+      summary: Получение клиента по ID
+      operationId: getClientById
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Клиент найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags:
+        - Clients
+      summary: Обновление клиента
+      operationId: updateClient
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateClientRequest'
+      responses:
+        '200':
+          description: Клиент обновлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Clients
+      summary: Удаление клиента (soft delete)
+      operationId: deleteClient
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Клиент удален
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /clients/{clientId}/exists:
+    get:
+      tags:
+        - Clients
+      summary: Проверка существования клиента
+      operationId: checkClientExists
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Результат проверки
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientExistsResponse'
+
+components:
+  schemas:
+    ClientStatus:
+      type: string
+      enum:
+        - ACTIVE
+        - BLOCKED
+        - DELETED
+
+    ErrorCode:
+      type: string
+      enum:
+        - CLIENT_NOT_FOUND
+        - MDM_ID_CONFLICT
+        - VALIDATION_ERROR
+        - CLIENT_HAS_ACTIVE_ACCOUNTS
+        - INTERNAL_ERROR
+
+    ErrorResponse:
+      type: object
+      required:
+        - errorCode
+        - errorDescription
+        - statusCode
+      properties:
+        errorCode:
+          $ref: '#/components/schemas/ErrorCode'
+        errorDescription:
+          type: string
+        statusCode:
+          type: integer
+          format: int32
+
+    CreateClientRequest:
+      type: object
+      required:
+        - mdmId
+        - firstName
+        - lastName
+      properties:
+        mdmId:
+          type: integer
+          format: int64
+        firstName:
+          type: string
+          maxLength: 100
+        lastName:
+          type: string
+          maxLength: 100
+        middleName:
+          type: string
+          maxLength: 100
+
+    UpdateClientRequest:
+      type: object
+      required:
+        - firstName
+        - lastName
+      properties:
+        firstName:
+          type: string
+          maxLength: 100
+        lastName:
+          type: string
+          maxLength: 100
+        middleName:
+          type: string
+          maxLength: 100
+
+    ClientResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        mdmId:
+          type: integer
+          format: int64
+        firstName:
+          type: string
+        lastName:
+          type: string
+        middleName:
+          type: string
+        status:
+          $ref: '#/components/schemas/ClientStatus'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        hasAccounts:
+          type: boolean
+
+    ClientShortDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        mdmId:
+          type: integer
+          format: int64
+        firstName:
+          type: string
+        lastName:
+          type: string
+        middleName:
+          type: string
+        status:
+          $ref: '#/components/schemas/ClientStatus'
+
+    PageableInfo:
+      type: object
+      properties:
+        pageNumber:
+          type: integer
+          format: int32
+        pageSize:
+          type: integer
+          format: int32
+        totalPages:
+          type: integer
+          format: int32
+        totalElements:
+          type: integer
+          format: int64
+
+    ClientPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClientShortDto'
+        pageable:
+          $ref: '#/components/schemas/PageableInfo'
+
+    ClientExistsResponse:
+      type: object
+      properties:
+        exists:
+          type: boolean
+        clientId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/ClientStatus'
+
+  responses:
+    BadRequest:
+      description: Невалидные данные
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Ресурс не найден
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: Конфликт состояния
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

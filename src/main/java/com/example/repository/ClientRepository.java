@@ -1,0 +1,11 @@
+package com.example.repository;
+
+import com.example.entity.Client;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+
+import java.util.UUID;
+
+public interface ClientRepository extends JpaRepository<Client, UUID>, JpaSpecificationExecutor<Client> {
+    boolean existsByMdmId(Long mdmId);
+}
