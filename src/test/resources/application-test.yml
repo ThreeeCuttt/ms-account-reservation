@@ -1,0 +1,5 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop # Создаст таблицы при старте и удалит при завершении
+    show-sql: true

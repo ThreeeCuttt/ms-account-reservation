@@ -1,25 +1,24 @@
 package com.example.controller;
 
-import com.example.ms_account_reservation.MsAccountReservationApplication;
+import com.example.AbstractIntegrationTest;
 import com.example.upg4.api.model.CreateClientRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.UUID;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(classes = MsAccountReservationApplication.class)
 @AutoConfigureMockMvc
-class ClientIntegrationTest {
+class ClientIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -51,5 +50,75 @@ class ClientIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.errorCode").value("CLIENT_NOT_FOUND"));
+    }
+
+    @Test
+    void deleteClient_ShouldReturn204_AndSoftDelete() throws Exception {
+        // 1. Создаем клиента
+        CreateClientRequest request = new CreateClientRequest();
+        request.setMdmId(111222333L);
+        request.setFirstName("Удаляемый");
+        request.setLastName("Клиент");
+
+        String responseJson = mockMvc.perform(post("/api/v1/clients")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andReturn().getResponse().getContentAsString();
+
+        String clientId = objectMapper.readTree(responseJson).get("id").asText();
+
+        // 2. Удаляем его (ожидаем 204)
+        mockMvc.perform(delete("/api/v1/clients/" + clientId))
+                .andExpect(status().isNoContent());
+
+        // 3. Пытаемся получить его снова (ожидаем 404, так как статус DELETED)
+        mockMvc.perform(get("/api/v1/clients/" + clientId))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void createClient_ShouldReturn409_WhenMdmIdExists() throws Exception {
+        // 1. Создаем первого клиента
+        CreateClientRequest request = new CreateClientRequest();
+        request.setMdmId(555666777L);
+        request.setFirstName("Первый");
+        request.setLastName("Клиент");
+
+        mockMvc.perform(post("/api/v1/clients")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated());
+
+        // 2. Пытаемся создать второго с тем же mdmId (ожидаем 409)
+        mockMvc.perform(post("/api/v1/clients")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errorCode").value("MDM_ID_CONFLICT"));
+    }
+
+    @Test
+    void searchClients_ShouldReturnPaginatedResult() throws Exception {
+        // Создаем 3 клиента для проверки пагинации
+        for (int i = 0; i < 3; i++) {
+            CreateClientRequest request = new CreateClientRequest();
+            request.setMdmId(100000000L + i);
+            request.setFirstName("Иван" + i);
+            request.setLastName("Тестов" + i);
+            mockMvc.perform(post("/api/v1/clients")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated());
+        }
+
+        // Запрашиваем страницу size=2 (ожидаем, что вернутся 2 элемента)
+        mockMvc.perform(get("/api/v1/clients?page=0&size=2")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.pageable.pageNumber").value(0))
+                .andExpect(jsonPath("$.pageable.pageSize").value(2));
+        // Убрал строгую проверку totalElements, так как количество клиентов в БД
+        // может меняться от теста к тесту, но проверка размера страницы покажет, что пагинация работает.
     }
 }

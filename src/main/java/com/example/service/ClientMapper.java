@@ -1,49 +1,36 @@
-package com.example.service;
+package com.example.service; // Укажи свой пакет, где лежит маппер
 
 import com.example.entity.Client;
-import com.example.upg4.api.model.*;
-import org.springframework.stereotype.Component;
+import com.example.upg4.api.model.ClientResponse;
+import com.example.upg4.api.model.CreateClientRequest;
+import com.example.upg4.api.model.UpdateClientRequest;
+import com.example.upg4.api.model.ClientShortDto;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
+import org.mapstruct.ReportingPolicy;
 
-@Component
-public class ClientMapper {
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
+public interface ClientMapper {
 
-    public ClientResponse toResponse(Client client) {
-        ClientResponse response = new ClientResponse();
-        response.setId(client.getId());
-        response.setMdmId(client.getMdmId());
-        response.setFirstName(client.getFirstName());
-        response.setLastName(client.getLastName());
-        response.setMiddleName(client.getMiddleName());
-        response.setStatus(client.getStatus());
-        // UTC
-        if (client.getCreatedAt() != null) {
-            response.setCreatedAt(client.getCreatedAt().atOffset(java.time.ZoneOffset.UTC));
-        }
-        if (client.getUpdatedAt() != null) {
-            response.setUpdatedAt(client.getUpdatedAt().atOffset(java.time.ZoneOffset.UTC));
-        }
-        response.setHasAccounts(false);
-        return response;
-    }
+    // 1. Создание Entity из DTO запроса
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "status", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    Client toEntity(CreateClientRequest request);
 
-    public ClientShortDto toShortDto(Client client) {
-        ClientShortDto dto = new ClientShortDto();
-        dto.setId(client.getId());
-        dto.setMdmId(client.getMdmId());
-        dto.setFirstName(client.getFirstName());
-        dto.setLastName(client.getLastName());
-        dto.setMiddleName(client.getMiddleName());
-        dto.setStatus(client.getStatus());
-        return dto;
-    }
+    // 2. Преобразование Entity в Response (полный ответ)
+    ClientResponse toResponse(Client client);
 
-    public Client toEntity(CreateClientRequest request) {
-        Client client = new Client();
-        client.setMdmId(request.getMdmId());
-        client.setFirstName(request.getFirstName());
-        client.setLastName(request.getLastName());
-        client.setMiddleName(request.getMiddleName());
-        client.setStatus(ClientStatus.ACTIVE); // По умолчанию активен
-        return client;
-    }
+    // 3. Преобразование Entity в краткий DTO для пагинации
+    ClientShortDto toShortDto(Client client);
+
+    // 4. Обновление существующей Entity из DTO (для PUT запроса)
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "mdmId", ignore = true) // mdmId нельзя менять при обновлении
+    @Mapping(target = "status", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    void updateEntityFromDto(UpdateClientRequest request, @MappingTarget Client client);
 }
