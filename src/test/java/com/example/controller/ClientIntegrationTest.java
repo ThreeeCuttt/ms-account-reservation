@@ -1,6 +1,9 @@
 package com.example.controller;
 
 import com.example.AbstractIntegrationTest;
+import com.example.entity.Client; // <-- Добавлен импорт
+import com.example.repository.ClientRepository; // <-- Добавлен импорт
+import com.example.upg4.api.model.ClientStatus; // <-- Добавлен импорт
 import com.example.upg4.api.model.CreateClientRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -11,6 +14,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat; // <-- Добавлен импорт для проверок
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -25,6 +29,9 @@ class ClientIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private ClientRepository clientRepository;
 
     @Test
     void createClient_ShouldReturn201() throws Exception {
@@ -67,13 +74,17 @@ class ClientIntegrationTest extends AbstractIntegrationTest {
 
         String clientId = objectMapper.readTree(responseJson).get("id").asText();
 
-        // 2. Удаляем его (ожидаем 204)
+        //(ожидаем 204)
         mockMvc.perform(delete("/api/v1/clients/" + clientId))
                 .andExpect(status().isNoContent());
 
-        // 3. Пытаемся получить его снова (ожидаем 404, так как статус DELETED)
+        // (ожидаем 404)
         mockMvc.perform(get("/api/v1/clients/" + clientId))
                 .andExpect(status().isNotFound());
+
+
+        Client deletedClient = clientRepository.findById(UUID.fromString(clientId)).orElseThrow();
+        assertThat(deletedClient.getStatus()).isEqualTo(ClientStatus.DELETED);
     }
 
     @Test
@@ -89,7 +100,7 @@ class ClientIntegrationTest extends AbstractIntegrationTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated());
 
-        // 2. Пытаемся создать второго с тем же mdmId (ожидаем 409)
+        //(ожидаем 409)
         mockMvc.perform(post("/api/v1/clients")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -99,7 +110,7 @@ class ClientIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void searchClients_ShouldReturnPaginatedResult() throws Exception {
-        // Создаем 3 клиента для проверки пагинации
+
         for (int i = 0; i < 3; i++) {
             CreateClientRequest request = new CreateClientRequest();
             request.setMdmId(100000000L + i);
@@ -111,14 +122,12 @@ class ClientIntegrationTest extends AbstractIntegrationTest {
                     .andExpect(status().isCreated());
         }
 
-        // Запрашиваем страницу size=2 (ожидаем, что вернутся 2 элемента)
+
         mockMvc.perform(get("/api/v1/clients?page=0&size=2")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(2))
                 .andExpect(jsonPath("$.pageable.pageNumber").value(0))
                 .andExpect(jsonPath("$.pageable.pageSize").value(2));
-        // Убрал строгую проверку totalElements, так как количество клиентов в БД
-        // может меняться от теста к тесту, но проверка размера страницы покажет, что пагинация работает.
     }
 }

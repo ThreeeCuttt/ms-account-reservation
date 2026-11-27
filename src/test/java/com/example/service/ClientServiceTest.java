@@ -84,25 +84,25 @@ class ClientServiceTest {
 
     // --- 3. Тест получения по ID (не найден) ---
     @Test
-    void getClientById_ShouldThrowNotFound_WhenClientDoesNotExist() {
-        UUID randomId = UUID.randomUUID();
-        when(clientRepository.findById(randomId)).thenReturn(Optional.empty());
+    void getClientById_ShouldThrowNotFound_WhenClientIsDeleted() {
+        UUID id = UUID.randomUUID();
+        // В реальности БД не вернет удаленного клиента, поэтому мокаем empty
+        when(clientRepository.findByIdAndStatusNot(id, ClientStatus.DELETED))
+                .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> clientService.getClientById(randomId))
+        assertThatThrownBy(() -> clientService.getClientById(id))
                 .isInstanceOf(ClientNotFoundException.class);
     }
 
     // --- 4. Тест получения по ID (клиент удален) ---
     @Test
-    void getClientById_ShouldThrowNotFound_WhenClientIsDeleted() {
-        UUID id = UUID.randomUUID();
-        Client deletedClient = new Client();
-        deletedClient.setId(id);
-        deletedClient.setStatus(ClientStatus.DELETED);
+    void getClientById_ShouldThrowNotFound_WhenClientDoesNotExist() {
+        UUID randomId = UUID.randomUUID();
+        // Мокаем новый метод
+        when(clientRepository.findByIdAndStatusNot(randomId, ClientStatus.DELETED))
+                .thenReturn(Optional.empty());
 
-        when(clientRepository.findById(id)).thenReturn(Optional.of(deletedClient));
-
-        assertThatThrownBy(() -> clientService.getClientById(id))
+        assertThatThrownBy(() -> clientService.getClientById(randomId))
                 .isInstanceOf(ClientNotFoundException.class);
     }
 
@@ -121,7 +121,9 @@ class ClientServiceTest {
         expectedResponse.setId(id);
         expectedResponse.setFirstName("Новое Имя");
 
-        when(clientRepository.findById(id)).thenReturn(Optional.of(existingClient));
+        // Мокаем новый метод
+        when(clientRepository.findByIdAndStatusNot(id, ClientStatus.DELETED))
+                .thenReturn(Optional.of(existingClient));
         when(clientRepository.saveAndFlush(existingClient)).thenReturn(existingClient);
         when(mapper.toResponse(existingClient)).thenReturn(expectedResponse);
 
@@ -139,16 +141,16 @@ class ClientServiceTest {
         activeClient.setId(id);
         activeClient.setStatus(ClientStatus.ACTIVE);
 
-        when(clientRepository.findById(id)).thenReturn(Optional.of(activeClient));
+        // Мокаем новый метод
+        when(clientRepository.findByIdAndStatusNot(id, ClientStatus.DELETED))
+                .thenReturn(Optional.of(activeClient));
 
         clientService.deleteClient(id);
 
-        // Используем ArgumentCaptor, чтобы перехватить объект, переданный в save()
         ArgumentCaptor<Client> captor = ArgumentCaptor.forClass(Client.class);
         verify(clientRepository).save(captor.capture());
 
         Client savedClient = captor.getValue();
-        // Проверяем, что сервис изменил статус перед сохранением
         assertThat(savedClient.getStatus()).isEqualTo(ClientStatus.DELETED);
     }
 }
